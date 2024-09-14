@@ -151,6 +151,38 @@ namespace Mint
             checkAutoStart.Checked = Options.CurrentOptions.AutoStart;
         }
 
+        static string Sha256(string randomString)
+        {
+            var crypt = new System.Security.Cryptography.SHA256Managed();
+            var hash = new System.Text.StringBuilder();
+            byte[] crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(randomString));
+            foreach (byte theByte in crypto)
+            {
+                hash.Append(theByte.ToString("x2"));
+            }
+            return hash.ToString();
+        }
+
+        readonly static string _iconCache = Application.StartupPath + "\\.mint_cache";
+
+        private Bitmap ExtractOrLoadIcon(string exeFilePath)
+        {
+            _ = Directory.CreateDirectory(_iconCache);
+            string pathHash = Sha256(exeFilePath);
+            string iconPath = _iconCache + "\\" + pathHash + ".png";
+            if (File.Exists(iconPath))
+            {
+                return new Bitmap(iconPath);
+            } 
+            else
+            {
+                Bitmap extracted = Icon.ExtractAssociatedIcon(exeFilePath).ToBitmap();
+                extracted.Save(iconPath);
+                return extracted;
+            }
+
+        }
+
         private void BuildLauncherMenu()
         {
             launcherMenu.Items.Clear();
@@ -185,7 +217,7 @@ namespace Mint
 
                     if (!string.IsNullOrEmpty(x.AppGroup))
                     {
-                        subItem = new ToolStripMenuItem(x.AppTitle, !isDeadItem ? Icon.ExtractAssociatedIcon(x.AppLink).ToBitmap() : null);
+                        subItem = new ToolStripMenuItem(x.AppTitle, !isDeadItem ? ExtractOrLoadIcon(x.AppLink) : null);
                         subItem.Click += subItem_Click;
                         if (!isDeadItem)
                         {
@@ -201,7 +233,7 @@ namespace Mint
                     }
                     else
                     {
-                        i = new ToolStripMenuItem(x.AppTitle, !isDeadItem ? (Icon.ExtractAssociatedIcon(x.AppLink)).ToBitmap() : null);
+                        i = new ToolStripMenuItem(x.AppTitle, !isDeadItem ? (ExtractOrLoadIcon(x.AppLink)) : null);
                         if (!isDeadItem)
                         {
                             i.ForeColor = Color.GhostWhite;
